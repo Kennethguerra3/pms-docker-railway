@@ -18,7 +18,7 @@
       "type": "string"
     },
     "ADVERTISE_IP": {
-      "description": "URL pública del servicio en Railway (ej: https://plex-production.up.railway.app:32400). Necesario para que el servidor sea accesible externamente en modo Bridge.",
+      "description": "URL del TCP Proxy de Railway (ej: tcp://monorail.proxy.rlwy.net:12345). Configurar DESPUÉS del deploy en Settings → Networking → Add TCP Proxy (puerto 32400).",
       "required": false,
       "type": "string"
     },
