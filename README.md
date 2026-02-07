@@ -1,81 +1,80 @@
-# Plex Media Server - Docker & Railway
+# Plex Media Server - Railway Template
 
 [![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/template)
 
-Servidor multimedia completo con soporte para Google Drive ilimitado. Despliega en Railway en 5 minutos o ejecuta localmente con Docker.
+Servidor multimedia completo con soporte para Google Drive ilimitado. Despliega en Railway en 5 minutos.
 
 ---
 
 ## 🚀 Inicio Rápido
-
-### Opción 1: Desplegar en Railway (Recomendado)
 
 1. Haz clic en el botón "Deploy on Railway" arriba
 2. Obtén tu `PLEX_CLAIM` desde [plex.tv/claim](https://plex.tv/claim)
 3. Configura las variables de entorno
 4. ¡Listo! Accede a `https://tu-app.railway.app:32400/web`
 
-### Opción 2: Docker Local
-
-```bash
-docker run \
--d \
---name plex \
---network=host \
--e TZ="America/New_York" \
--e PLEX_CLAIM="<tu-claim-token>" \
--v <ruta/config>:/config \
--v <ruta/transcode>:/transcode \
--v <ruta/media>:/data \
-plexinc/pms-docker
-```
-
 ---
 
 ## 📋 Tabla de Contenidos
 
-- [Despliegue en Railway](#-despliegue-en-railway)
-- [Configuración de Google Drive (Service Account)](#-configuración-de-google-drive-service-account)
+- [Requisitos Previos](#-requisitos-previos)
 - [Variables de Entorno](#%EF%B8%8F-variables-de-entorno)
-- [Docker Local](#-uso-con-docker-local)
+- [Configuración de Google Drive (Service Account)](#-configuración-de-google-drive-service-account)
+- [Configuración Post-Despliegue](#-configuración-post-despliegue)
 - [Troubleshooting](#-troubleshooting)
 
 ---
 
-## 🌐 Despliegue en Railway
-
-### Requisitos Previos
+## 📋 Requisitos Previos
 
 1. **Cuenta de Plex**: [plex.tv](https://plex.tv)
 2. **Claim Token**: [plex.tv/claim](https://plex.tv/claim) (válido 4 minutos)
 3. **Cuenta de Railway**: [railway.app](https://railway.app)
 
-### Variables de Entorno Requeridas
+---
 
-| Variable | Descripción | Ejemplo |
+## ⚙️ Variables de Entorno
+
+### Variables Principales
+
+| Variable | Descripción | Ejemplo | Requerido |
+|----------|-------------|---------|-----------|
+| `PLEX_CLAIM` | Token de reclamación (obtener en plex.tv/claim) | `claim-xxxxxxxxxxxx` | ✅ |
+| `ADVERTISE_IP` | URL pública de Railway + puerto | `https://tu-app.railway.app:32400` | ✅ |
+| `TZ` | Zona horaria | `America/Mexico_City` | ❌ |
+| `PLEX_UID` | User ID para permisos | `1000` | ❌ |
+| `PLEX_GID` | Group ID para permisos | `1000` | ❌ |
+
+### Variables de Google Drive (Service Account)
+
+| Variable | Descripción | Default | Requerido |
+|----------|-------------|---------|-----------|
+| `ENABLE_RCLONE` | Habilitar montaje de Google Drive | `false` | ❌ |
+| `RCLONE_SERVICE_ACCOUNT_JSON` | JSON completo de Service Account | - | ❌ |
+| `RCLONE_REMOTE_NAME` | Nombre del remote | `gdrive` | ❌ |
+| `RCLONE_REMOTE_PATH` | Ruta en Google Drive | `/` | ❌ |
+
+### Variables Avanzadas
+
+| Variable | Descripción | Default |
 |----------|-------------|---------|
-| `PLEX_CLAIM` | Token de reclamación (obtener en plex.tv/claim) | `claim-xxxxxxxxxxxx` |
-| `ADVERTISE_IP` | URL pública de Railway + puerto | `https://tu-app.railway.app:32400` |
-| `TZ` | Zona horaria | `America/Mexico_City` |
+| `ALLOWED_NETWORKS` | Redes permitidas sin autenticación | - |
+| `CHANGE_CONFIG_DIR_OWNERSHIP` | Cambiar permisos de `/config` | `true` |
+| `RCLONE_CONFIG` | Config OAuth en base64 (avanzado) | - |
 
-### Volúmenes Persistentes
+---
+
+## 💾 Volúmenes Persistentes
 
 Railway monta automáticamente:
 
 | Volumen | Ruta | Propósito |
 |---------|------|-----------|
 | `plex-config` | `/config` | **CRÍTICO**: Base de datos y configuración |
-| `plex-data` | `/data` | Archivos multimedia |
-| `plex-transcode` | `/transcode` | Archivos temporales |
+| `plex-data` | `/data` | Archivos multimedia (si no usas Google Drive) |
+| `plex-transcode` | `/transcode` | Archivos temporales de transcodificación |
 
 > ⚠️ **IMPORTANTE**: No elimines el volumen `/config` o perderás toda tu configuración.
-
-### Configuración Post-Despliegue
-
-1. **Obtener URL pública** de Railway Dashboard
-2. **Actualizar** `ADVERTISE_IP=https://tu-app.railway.app:32400`
-3. **Acceder** a `https://tu-app.railway.app:32400/web`
-4. **Configurar bibliotecas** apuntando a `/data` o `/mnt/gdrive`
 
 ---
 
@@ -204,166 +203,89 @@ Para troubleshooting y configuración avanzada, consulta:
 
 ---
 
-## ⚙️ Variables de Entorno
+## 🔧 Configuración Post-Despliegue
 
-### Variables Principales
+### 1. Obtener la URL Pública
 
-| Variable | Descripción | Default | Requerido |
-|----------|-------------|---------|-----------|
-| `PLEX_CLAIM` | Token de reclamación de plex.tv/claim | - | ✅ |
-| `TZ` | Zona horaria (ej: `America/New_York`) | `UTC` | ❌ |
-| `ADVERTISE_IP` | URL pública (Railway) | - | ✅ (Railway) |
-| `PLEX_UID` | User ID para permisos | `1000` | ❌ |
-| `PLEX_GID` | Group ID para permisos | `1000` | ❌ |
+Después del despliegue, Railway te asignará una URL pública:
 
-### Variables de Google Drive (Service Account)
+```
+https://<nombre-servicio>.up.railway.app
+```
 
-| Variable | Descripción | Default | Requerido |
-|----------|-------------|---------|-----------|
-| `ENABLE_RCLONE` | Habilitar montaje de Google Drive | `false` | ❌ |
-| `RCLONE_SERVICE_ACCOUNT_JSON` | JSON completo de Service Account | - | ❌ |
-| `RCLONE_REMOTE_NAME` | Nombre del remote | `gdrive` | ❌ |
-| `RCLONE_REMOTE_PATH` | Ruta en Google Drive | `/` | ❌ |
+### 2. Configurar ADVERTISE_IP
 
-### Variables Avanzadas
+Ve a las variables de entorno en Railway y actualiza:
 
-| Variable | Descripción | Default |
-|----------|-------------|---------|
-| `ALLOWED_NETWORKS` | Redes permitidas sin autenticación | - |
-| `CHANGE_CONFIG_DIR_OWNERSHIP` | Cambiar permisos de `/config` | `true` |
-| `RCLONE_CONFIG` | Config OAuth en base64 (avanzado) | - |
+```
+ADVERTISE_IP=https://<nombre-servicio>.up.railway.app:32400
+```
+
+### 3. Acceder a Plex
+
+Visita:
+
+```
+https://<nombre-servicio>.up.railway.app:32400/web
+```
+
+### 4. Configuración Inicial
+
+1. Inicia sesión con tu cuenta de Plex
+2. Configura tus bibliotecas apuntando a `/mnt/gdrive` (si usas Google Drive) o `/data`
+3. Ajusta las configuraciones de transcodificación según tus necesidades
 
 ---
 
-## 🐳 Uso con Docker Local
+## 🌐 Configuración de Red
 
-### Networking: Host (Recomendado)
+### Puerto Principal
 
-```bash
-docker run \
--d \
---name plex \
---network=host \
--e TZ="America/New_York" \
--e PLEX_CLAIM="<claim-token>" \
--v /ruta/config:/config \
--v /ruta/transcode:/transcode \
--v /ruta/media:/data \
-plexinc/pms-docker
-```
+- **Puerto**: `32400/TCP`
+- **Protocolo**: HTTP/HTTPS
+- **Uso**: Interfaz web y streaming
 
-### Networking: Bridge
+### Puertos Adicionales (Expuestos pero no públicos en Railway)
 
-```bash
-docker run \
--d \
---name plex \
--p 32400:32400/tcp \
--p 8324:8324/tcp \
--p 32469:32469/tcp \
--p 1900:1900/udp \
--p 32410:32410/udp \
--p 32412:32412/udp \
--p 32413:32413/udp \
--p 32414:32414/udp \
--e TZ="America/New_York" \
--e PLEX_CLAIM="<claim-token>" \
--e ADVERTISE_IP="http://<tu-ip>:32400/" \
--v /ruta/config:/config \
--v /ruta/transcode:/transcode \
--v /ruta/media:/data \
-plexinc/pms-docker
-```
+- `8324/TCP`: Roku via Plex Companion
+- `32469/TCP`: Plex DLNA Server
+- `1900/UDP`: Plex DLNA Server Discovery
+- `32410-32414/UDP`: Network Discovery
 
-### Docker Compose
-
-```yaml
-version: '3.8'
-services:
-  plex:
-    image: plexinc/pms-docker
-    container_name: plex
-    network_mode: host
-    environment:
-      - TZ=America/New_York
-      - PLEX_CLAIM=<claim-token>
-    volumes:
-      - ./config:/config
-      - ./transcode:/transcode
-      - ./media:/data
-    restart: unless-stopped
-```
-
-### Comandos Útiles
-
-```bash
-# Iniciar contenedor
-docker start plex
-
-# Detener contenedor
-docker stop plex
-
-# Ver logs
-docker logs -f plex
-
-# Acceso shell
-docker exec -it plex /bin/bash
-
-# Reiniciar y actualizar
-docker restart plex
-```
+> **Nota**: Railway solo expone el puerto 32400 públicamente. Los demás puertos están disponibles internamente.
 
 ---
 
-## 🔧 Configuración Avanzada
+## 🩺 Healthcheck
 
-### Intel Quick Sync (Hardware Transcoding)
+El servicio incluye un healthcheck automático:
 
-Requiere Plex Pass y CPU Intel con Quick Sync:
-
-```bash
-docker run \
--d \
---name plex \
---network=host \
---device=/dev/dri:/dev/dri \
--e TZ="America/New_York" \
--e PLEX_CLAIM="<claim-token>" \
--v /ruta/config:/config \
--v /ruta/transcode:/transcode \
--v /ruta/media:/data \
-plexinc/pms-docker
-```
-
-Luego en Plex Web:
-
-1. Settings → Server → Transcoder
-2. Activar "Show Advanced"
-3. Activar "Use hardware acceleration when available"
-
-### Permisos de Usuario
-
-Para que Plex use tus permisos de usuario:
-
-```bash
-# Obtener tu UID/GID
-id $(whoami)
-# Salida: uid=1001(usuario) gid=1001(usuario)
-
-# Usar en docker run
--e PLEX_UID=1001 \
--e PLEX_GID=1001
-```
+- **Endpoint**: `http://localhost:32400/identity`
+- **Intervalo**: Cada 5 segundos
+- **Timeout**: 2 segundos
+- **Reintentos**: 20 veces antes de marcar como unhealthy
 
 ---
 
-## 🐛 Troubleshooting
+## � Troubleshooting
 
-### Railway: Servidor no accesible externamente
+### El servidor no es accesible externamente
 
-- ✅ Verifica `ADVERTISE_IP=https://tu-app.railway.app:32400`
-- ✅ Asegúrate de incluir el puerto `:32400`
-- ✅ Revisa logs en Railway Dashboard
+- ✅ Verifica que `ADVERTISE_IP` esté configurado correctamente
+- ✅ Asegúrate de que la URL incluya el puerto `:32400`
+- ✅ Revisa los logs en Railway Dashboard
+
+### El servidor se reinicia constantemente
+
+- ✅ Verifica que el `PLEX_CLAIM` sea válido (no expirado)
+- ✅ Revisa los logs para errores de permisos
+- ✅ Asegúrate de que los volúmenes estén montados correctamente
+
+### No puedo agregar bibliotecas
+
+- ✅ Verifica que el volumen `/data` o `/mnt/gdrive` esté montado
+- ✅ Asegúrate de tener archivos multimedia en la ruta correcta
+- ✅ Revisa los permisos con `PLEX_UID` y `PLEX_GID`
 
 ### Google Drive: "Cannot read files"
 
@@ -377,27 +299,11 @@ id $(whoami)
 - ✅ Copia TODO el contenido sin modificar
 - ✅ Verifica que empieza con `{` y termina con `}`
 
-### Docker: Servidor se reinicia constantemente
+### Problemas de transcodificación
 
-- ✅ Verifica que `PLEX_CLAIM` no haya expirado (4 minutos)
-- ✅ Revisa logs: `docker logs plex`
-- ✅ Verifica permisos de volúmenes
-
-### Docker: No puedo agregar bibliotecas
-
-- ✅ Verifica que el volumen `/data` esté montado
-- ✅ Asegúrate de tener archivos en `/data`
-- ✅ Revisa permisos con `PLEX_UID` y `PLEX_GID`
-
-### Headless Server (Sin GUI)
-
-Si no agregaste `PLEX_CLAIM` al inicio, usa SSH tunneling:
-
-```bash
-ssh usuario@ip-servidor -L 32400:localhost:32400 -N
-```
-
-Luego accede a `http://localhost:32400/web` en tu PC.
+- ✅ Railway tiene recursos limitados en el plan gratuito
+- ✅ Considera actualizar a un plan con más CPU/RAM
+- ✅ Ajusta la calidad de transcodificación en Plex
 
 ---
 
@@ -417,7 +323,7 @@ Luego accede a `http://localhost:32400/web` en tu PC.
 ## 📚 Recursos Adicionales
 
 - [Documentación Oficial de Plex](https://support.plex.tv/)
-- [Repositorio GitHub](https://github.com/plexinc/pms-docker)
+- [Repositorio GitHub Original](https://github.com/plexinc/pms-docker)
 - [Documentación de Railway](https://docs.railway.app/)
 - [Foro de la Comunidad Plex](https://forums.plex.tv/)
 - [Guía Service Account Detallada](SERVICE_ACCOUNT_SETUP.md)
