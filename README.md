@@ -1,66 +1,260 @@
-# Official Docker container for Plex Media Server
+# Plex Media Server - Docker & Railway
 
-# plexinc/pms-docker
+[![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/template)
 
-With our easy-to-install Plex Media Server software and your Plex apps, available on all your favorite phones, tablets, streaming devices, gaming consoles, and smart TVs, you can stream your video, music, and photo collections any time, anywhere, to any device.
+Servidor multimedia completo con soporte para Google Drive ilimitado. Despliega en Railway en 5 minutos o ejecuta localmente con Docker.
 
-## Usage
+---
 
-Before you create your container, you must decide on the type of networking you wish to use.  There are essentially three types of networking available:
+## 🚀 Inicio Rápido
 
-- `bridge` (default)
-- `host`
-- `macvlan`
+### Opción 1: Desplegar en Railway (Recomendado)
 
-The `bridge` networking creates an entirely new network within the host and runs containers within there.  This network is connected to the physical network via an internal router and docker configures this router to forward certain ports through to the containers within.  The `host` networking uses the IP address of the host running docker such that a container's networking appears to be the host rather than separate.  The `macvlan` networking creates a new virtual computer on the network which is the container.  For purposes of setting up a plex container, the `host` and `macvlan` are very similar in configuration.
+1. Haz clic en el botón "Deploy on Railway" arriba
+2. Obtén tu `PLEX_CLAIM` desde [plex.tv/claim](https://plex.tv/claim)
+3. Configura las variables de entorno
+4. ¡Listo! Accede a `https://tu-app.railway.app:32400/web`
 
-Using `host` or `macvlan` is the easier of the three setups and has the fewest issues that need to be worked around.  However, some setups may be restricted to only running in the `bridge` mode.  Plex can be made to work in this mode, but it is more complicated.
+### Opción 2: Docker Local
 
-For those who use docker-compose, this repository provides the necessary YML template files to be modified for your own use.
-
-### Host Networking
-
-```
+```bash
 docker run \
 -d \
 --name plex \
 --network=host \
--e TZ="<timezone>" \
--e PLEX_CLAIM="<claimToken>" \
--v <path/to/plex/database>:/config \
--v <path/to/transcode/temp>:/transcode \
--v <path/to/media>:/data \
+-e TZ="America/New_York" \
+-e PLEX_CLAIM="<tu-claim-token>" \
+-v <ruta/config>:/config \
+-v <ruta/transcode>:/transcode \
+-v <ruta/media>:/data \
 plexinc/pms-docker
 ```
 
-Note: If your `/etc/hosts` file is missing an entry for `localhost`, you should add one before using host networking.
+---
 
-### Macvlan Networking
+## 📋 Tabla de Contenidos
+
+- [Despliegue en Railway](#-despliegue-en-railway)
+- [Configuración de Google Drive (Service Account)](#-configuración-de-google-drive-service-account)
+- [Variables de Entorno](#%EF%B8%8F-variables-de-entorno)
+- [Docker Local](#-uso-con-docker-local)
+- [Troubleshooting](#-troubleshooting)
+
+---
+
+## 🌐 Despliegue en Railway
+
+### Requisitos Previos
+
+1. **Cuenta de Plex**: [plex.tv](https://plex.tv)
+2. **Claim Token**: [plex.tv/claim](https://plex.tv/claim) (válido 4 minutos)
+3. **Cuenta de Railway**: [railway.app](https://railway.app)
+
+### Variables de Entorno Requeridas
+
+| Variable | Descripción | Ejemplo |
+|----------|-------------|---------|
+| `PLEX_CLAIM` | Token de reclamación (obtener en plex.tv/claim) | `claim-xxxxxxxxxxxx` |
+| `ADVERTISE_IP` | URL pública de Railway + puerto | `https://tu-app.railway.app:32400` |
+| `TZ` | Zona horaria | `America/Mexico_City` |
+
+### Volúmenes Persistentes
+
+Railway monta automáticamente:
+
+| Volumen | Ruta | Propósito |
+|---------|------|-----------|
+| `plex-config` | `/config` | **CRÍTICO**: Base de datos y configuración |
+| `plex-data` | `/data` | Archivos multimedia |
+| `plex-transcode` | `/transcode` | Archivos temporales |
+
+> ⚠️ **IMPORTANTE**: No elimines el volumen `/config` o perderás toda tu configuración.
+
+### Configuración Post-Despliegue
+
+1. **Obtener URL pública** de Railway Dashboard
+2. **Actualizar** `ADVERTISE_IP=https://tu-app.railway.app:32400`
+3. **Acceder** a `https://tu-app.railway.app:32400/web`
+4. **Configurar bibliotecas** apuntando a `/data` o `/mnt/gdrive`
+
+---
+
+## 📁 Configuración de Google Drive (Service Account)
+
+### ⭐ Método Recomendado: Service Account (5 minutos)
+
+✅ **Sin instalar nada en tu PC**  
+✅ **Solo copiar/pegar un archivo JSON**  
+✅ **Nunca expira**  
+✅ **Almacenamiento ilimitado** (según tu plan de Google)
+
+### Paso 1: Crear Proyecto en Google Cloud Console
+
+1. Ve a [console.cloud.google.com](https://console.cloud.google.com)
+2. Clic en selector de proyectos → **"Nuevo Proyecto"**
+3. Nombre: `Plex Media Server`
+4. Clic en **"Crear"**
+
+### Paso 2: Habilitar Google Drive API
+
+1. Menú (☰) → **"APIs y servicios"** → **"Biblioteca"**
+2. Busca: `Google Drive API`
+3. Clic en **"Habilitar"**
+
+### Paso 3: Crear Service Account
+
+1. Menú (☰) → **"IAM y administración"** → **"Cuentas de servicio"**
+2. Clic en **"+ Crear cuenta de servicio"**
+3. Nombre: `plex-gdrive`
+4. Clic en **"Crear y continuar"**
+5. **Omitir** roles → **"Continuar"** → **"Listo"**
+
+### Paso 4: Descargar Credenciales JSON
+
+1. Clic en el email de la Service Account (`plex-gdrive@...`)
+2. Pestaña **"Claves"** → **"Agregar clave"** → **"Crear clave nueva"**
+3. Tipo: **JSON** → **"Crear"**
+4. Se descarga automáticamente un archivo `.json`
+
+**⚠️ IMPORTANTE:** Copia el email de la Service Account (lo necesitarás en el siguiente paso):
+```
+plex-gdrive@tu-proyecto-123456.iam.gserviceaccount.com
+```
+
+### Paso 5: Compartir Carpeta de Google Drive
+
+1. Ve a [drive.google.com](https://drive.google.com)
+2. Crea carpeta: **"Plex"**
+3. Dentro de `Plex`, crea subcarpetas:
+   - `Movies`
+   - `TV Shows`
+   - `Music`
+4. **Clic derecho** en carpeta `Plex` → **"Compartir"**
+5. Pega el email de la Service Account
+6. Cambia permiso a **"Editor"**
+7. **Desactiva** "Notificar a las personas"
+8. Clic en **"Compartir"**
+
+### Paso 6: Configurar en Railway
+
+1. Abre el archivo `.json` descargado con **Bloc de notas**
+2. **Selecciona TODO** (Ctrl+A) y **copia** (Ctrl+C)
+3. En Railway Dashboard → **"Variables"**:
+
+| Variable | Valor |
+|----------|-------|
+| `ENABLE_RCLONE` | `true` |
+| `RCLONE_SERVICE_ACCOUNT_JSON` | *Pegar todo el contenido del JSON* |
+| `RCLONE_REMOTE_NAME` | `gdrive` |
+| `RCLONE_REMOTE_PATH` | `/Plex` |
+
+1. Clic en **"Deploy"**
+
+### Paso 7: Subir Películas
+
+Organiza tus archivos en Google Drive:
 
 ```
+Google Drive/
+└── Plex/
+    ├── Movies/
+    │   ├── Avatar (2009)/
+    │   │   └── Avatar (2009).mkv
+    │   └── Inception (2010)/
+    │       └── Inception (2010).mp4
+    └── TV Shows/
+        └── Breaking Bad/
+            └── Season 01/
+                ├── Breaking Bad - S01E01.mkv
+                └── Breaking Bad - S01E02.mkv
+```
+
+**Métodos para subir:**
+
+- 🌐 Navegador: [drive.google.com](https://drive.google.com)
+- 💻 App de escritorio: Google Drive para PC
+- 📱 App móvil: Google Drive
+
+### Paso 8: Configurar Bibliotecas en Plex
+
+1. Accede a Plex: `https://tu-app.railway.app:32400/web`
+2. Clic en **"+"** junto a "Bibliotecas"
+3. Selecciona tipo: **"Películas"**
+4. Clic en **"Examinar carpeta"**
+5. Navega a: `/mnt/gdrive/Plex/Movies`
+6. Clic en **"Agregar biblioteca"**
+
+### ✅ Verificación
+
+Revisa los logs en Railway:
+
+```
+[Rclone] Using Service Account authentication (recommended)
+[Rclone] ✓ Service Account configuration created
+[Rclone] ✓ Google Drive mounted successfully at /mnt/gdrive
+[Rclone] ✓ Read access verified
+```
+
+### 📖 Guía Detallada
+
+Para troubleshooting y configuración avanzada, consulta:
+
+- **Service Account**: [SERVICE_ACCOUNT_SETUP.md](SERVICE_ACCOUNT_SETUP.md)
+- **OAuth (Avanzado)**: [GOOGLE_DRIVE_SETUP.md](GOOGLE_DRIVE_SETUP.md)
+
+---
+
+## ⚙️ Variables de Entorno
+
+### Variables Principales
+
+| Variable | Descripción | Default | Requerido |
+|----------|-------------|---------|-----------|
+| `PLEX_CLAIM` | Token de reclamación de plex.tv/claim | - | ✅ |
+| `TZ` | Zona horaria (ej: `America/New_York`) | `UTC` | ❌ |
+| `ADVERTISE_IP` | URL pública (Railway) | - | ✅ (Railway) |
+| `PLEX_UID` | User ID para permisos | `1000` | ❌ |
+| `PLEX_GID` | Group ID para permisos | `1000` | ❌ |
+
+### Variables de Google Drive (Service Account)
+
+| Variable | Descripción | Default | Requerido |
+|----------|-------------|---------|-----------|
+| `ENABLE_RCLONE` | Habilitar montaje de Google Drive | `false` | ❌ |
+| `RCLONE_SERVICE_ACCOUNT_JSON` | JSON completo de Service Account | - | ❌ |
+| `RCLONE_REMOTE_NAME` | Nombre del remote | `gdrive` | ❌ |
+| `RCLONE_REMOTE_PATH` | Ruta en Google Drive | `/` | ❌ |
+
+### Variables Avanzadas
+
+| Variable | Descripción | Default |
+|----------|-------------|---------|
+| `ALLOWED_NETWORKS` | Redes permitidas sin autenticación | - |
+| `CHANGE_CONFIG_DIR_OWNERSHIP` | Cambiar permisos de `/config` | `true` |
+| `RCLONE_CONFIG` | Config OAuth en base64 (avanzado) | - |
+
+---
+
+## 🐳 Uso con Docker Local
+
+### Networking: Host (Recomendado)
+
+```bash
 docker run \
 -d \
 --name plex \
---network=physical \
---ip=<IPAddress> \
--e TZ="<timezone>" \
--e PLEX_CLAIM="<claimToken>" \
--h <HOSTNAME> \
--v <path/to/plex/database>:/config \
--v <path/to/transcode/temp>:/transcode \
--v <path/to/media>:/data \
+--network=host \
+-e TZ="America/New_York" \
+-e PLEX_CLAIM="<claim-token>" \
+-v /ruta/config:/config \
+-v /ruta/transcode:/transcode \
+-v /ruta/media:/data \
 plexinc/pms-docker
 ```
 
-Similar to `Host Networking` above with these changes:
+### Networking: Bridge
 
-- The network has been changed to `physical` which is the name of the `macvlan` network (yours is likely to be different).
-- The `--ip` parameter has been added to specify the IP address of the container.  This parameter is optional since the network may specify IPs to use but this parameter overrides those settings.
-- The `-h <HOSTNAME>` has been added since this networking type doesn't use the hostname of the host.
-
-### Bridge Networking
-
-```
+```bash
 docker run \
 -d \
 --name plex \
@@ -72,138 +266,171 @@ docker run \
 -p 32412:32412/udp \
 -p 32413:32413/udp \
 -p 32414:32414/udp \
--e TZ="<timezone>" \
--e PLEX_CLAIM="<claimToken>" \
--e ADVERTISE_IP="http://<hostIPAddress>:32400/" \
--h <HOSTNAME> \
--v <path/to/plex/database>:/config \
--v <path/to/transcode/temp>:/transcode \
--v <path/to/media>:/data \
+-e TZ="America/New_York" \
+-e PLEX_CLAIM="<claim-token>" \
+-e ADVERTISE_IP="http://<tu-ip>:32400/" \
+-v /ruta/config:/config \
+-v /ruta/transcode:/transcode \
+-v /ruta/media:/data \
 plexinc/pms-docker
 ```
 
-Note: In this configuration, you must do some additional configuration:
+### Docker Compose
 
-- If you wish your Plex Media Server to be accessible outside of your home network, you must manually setup port forwarding on your router to forward to the `ADVERTISE_IP` specified above.  By default you can forward port 32400, but if you choose to use a different external port, be sure you configure this in Plex Media Server's `Remote Access` settings.  With this type of docker networking, the Plex Media Server is essentially behind two routers and it cannot automatically setup port forwarding on its own.
-- (Plex Pass only) After the server has been set up, you should configure the `LAN Networks` preference to contain the network of your LAN.  This instructs the Plex Media Server to treat these IP addresses as part of your LAN when applying bandwidth controls.  The syntax is the same as the `ALLOWED_NETWORKS` below.  For example `192.168.1.0/24,172.16.0.0/16` will allow access to the entire `192.168.1.x` range and the `172.16.x.x` range.
-
-## Parameters
-
-- `-p 32400:32400/tcp` Forwards port 32400 from the host to the container.  This is the primary port that Plex uses for communication and is required for Plex Media Server to operate.
-- `-p …` Forwards complete set of other ports used by Plex to the container.  For a full explanation of which you may need, please see the help article: [https://support.plex.tv/hc/en-us/articles/201543147-What-network-ports-do-I-need-to-allow-through-my-firewall](https://support.plex.tv/hc/en-us/articles/201543147-What-network-ports-do-I-need-to-allow-through-my-firewall)
-- `-v <path/to/plex/database>:/config` The path where you wish Plex Media Server to store its configuration data.  This database can grow to be quite large depending on the size of your media collection.  This is usually a few GB but for large libraries or libraries where index files are generated, this can easily hit the 100s of GBs.  If you have an existing database directory see the section below on the directory setup. **Note**: the underlying filesystem needs to support file locking. This is known to not be default enabled on remote filesystems like NFS, SMB, and many many others.  The 9PFS filesystem used by FreeNAS Corral is known to work but the vast majority will result in database corruption.  Use a network share at your own risk.
-- `-v <path/to/transcode/temp>:/transcode` The path where you would like Plex Media Server to store its transcoder temp files.  If not provided, the storage space within the container will be used.  Expect sizes in the 10s of GB.
-- `-v <path/to/media>:/data` This is provided as examples for providing media into the container.  The exact structure of how the media is organized and presented inside the container is a matter of user preference.  You can use as many or as few of these parameters as required to provide your media to the container.
-- `-e KEY="value"` These are environment variables which configure the container.  See below for a description of their meanings.
-
-The following are the recommended parameters.  Each of the following parameters to the container are treated as first-run parameters only.  That is, all other parameters are ignored on subsequent runs of the server.  We recommend that you set the following parameters:
-
-- **HOSTNAME** Sets the hostname inside the docker container. For example `-h PlexServer` will set the servername to `PlexServer`.  Not needed in Host Networking.
-- **TZ** Set the timezone inside the container.  For example: `Europe/London`.  The complete list can be found here: [https://en.wikipedia.org/wiki/List_of_tz_database_time_zones](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones)
-- **PLEX_CLAIM** The claim token for the server to obtain a real server token.  If not provided, server will not be automatically logged in.  If server is already logged in, this parameter is ignored.  You can obtain a claim token to login your server to your plex account by visiting [https://www.plex.tv/claim](https://www.plex.tv/claim)
-- **ADVERTISE_IP** This variable defines the additional IPs on which the server may be found.  For example: `http://10.1.1.23:32400`.  This adds to the list where the server advertises that it can be found.  This is only needed in Bridge Networking.
-
-These parameters are usually not required but some special setups may benefit from their use.  As in the previous section, each is treated as first-run parameters only:
-
-- **PLEX_UID** The user id of the `plex` user created inside the container.
-- **PLEX_GID** The group id of the `plex` group created inside the container
-- **CHANGE_CONFIG_DIR_OWNERSHIP** Change ownership of config directory to the plex user.  Defaults to `true`.  If you are certain permissions are already set such that the `plex` user within the container can read/write data in it's config directory, you can set this to `false` to speed up the first run of the container.
-- **ALLOWED_NETWORKS** IP/netmask entries which allow access to the server without requiring authorization.  We recommend you set this only if you do not sign in your server.  For example `192.168.1.0/24,172.16.0.0/16` will allow access to the entire `192.168.1.x` range and the `172.16.x.x` range.  Note: If you are using Bridge networking, then localhost will appear to plex as coming from the docker networking gateway which is often `172.16.0.1`.
-
-## Users/Groups
-Permissions of mounted media outside the container do apply to the Plex Media Server running within the container.  As stated above, the Plex Media Server runs as a specially created `plex` user within the container.  This user may not exist outside the container and so the `PLEX_UID` and `PLEX_GID` parameters are used to set the user id and group id of this user within the container.  If you wish for the Plex Media Server to run under the same permissions as your own user, execute the following to find out these ids:
-
-```
-$ id `whoami`
+```yaml
+version: '3.8'
+services:
+  plex:
+    image: plexinc/pms-docker
+    container_name: plex
+    network_mode: host
+    environment:
+      - TZ=America/New_York
+      - PLEX_CLAIM=<claim-token>
+    volumes:
+      - ./config:/config
+      - ./transcode:/transcode
+      - ./media:/data
+    restart: unless-stopped
 ```
 
-You'll see a line like the following:
+### Comandos Útiles
 
+```bash
+# Iniciar contenedor
+docker start plex
+
+# Detener contenedor
+docker stop plex
+
+# Ver logs
+docker logs -f plex
+
+# Acceso shell
+docker exec -it plex /bin/bash
+
+# Reiniciar y actualizar
+docker restart plex
 ```
-uid=1001(myuser) gid=1001(myuser) groups=1001(myuser)
-```
 
-In the above case, if you set the `PLEX_UID` and `PLEX_GID` to `1001`, then the permissions will match that of your own user.
+---
 
-## Tags
-In addition to the standard version and `latest` tags, two other tags exist: `beta` and `public`. These two images behave differently than your typical containers.  These two images do **not** have any Plex Media Server binary installed.  Instead, when these containers are run, they will perform an update check and fetch the latest version, install it, and then continue execution.  They also run the update check whenever the container is restarted.  To update the version in the container, simply stop the container and start container again when you have a network connection. The startup script will automatically fetch the appropriate version and install it before starting the Plex Media Server.
+## 🔧 Configuración Avanzada
 
-The `public` restricts this check to public versions only where as `beta` will fetch beta versions.  If the server is not logged in or you do not have Plex Pass on your account, the `beta` tagged images will be restricted to publicly available versions only.
+### Intel Quick Sync (Hardware Transcoding)
 
-To view the Docker images head over to [https://hub.docker.com/r/plexinc/pms-docker/tags/](https://hub.docker.com/r/plexinc/pms-docker/tags/)
+Requiere Plex Pass y CPU Intel con Quick Sync:
 
-## Config Directory
-Inside the docker container, the database is stored with a `Library/Application Support/Plex Media Server` in the `config` directory.
-
-If you wish to migrate an existing directory to the docker config directory:
-
-- Locate the current config directory as directed here: [https://support.plex.tv/hc/en-us/articles/202915258-Where-is-the-Plex-Media-Server-data-directory-located-](https://support.plex.tv/hc/en-us/articles/202915258-Where-is-the-Plex-Media-Server-data-directory-located-)
-- If the config dir is stored in a location such as `/var/lib/plexmediaserver/Library/Application Support/Plex Media Server/`, the config dir will be `/var/lib/plexmediaserver`.
-- If the config dir does not contain `Library/Application Support/Plex Media Server/` or the directory containing `Library` has data unrelated to Plex, such as OS X, then you should:
-  - Create a new directory which will be your new config dir.
-  - Within that config dir, create the directories `Library/Application Support`
-  - Copy `Plex Media Server` into that `Library/Application Support`
-- Note: by default Plex will claim ownership of the entire contents of the `config` dir (see CHANGE_CONFIG_DIR_OWNERSHIP for more information).  As such, there should be nothing in that dir that you do not wish for Plex to own.
-
-## Useful information
-- Start the container: `docker start plex`
-- Stop the container: `docker stop plex`
-- Shell access to the container while it is running: `docker exec -it plex /bin/bash`
-- See the logs given by the startup script in real time: `docker logs -f plex`
-- Restart the application and upgrade to the latest version: `docker restart plex`
-
-## Fedora, CentOS, Red Hat
-
-If you get the following output after you have started the container, then this is due to a patched version of Docker ([#158](https://github.com/just-containers/s6-overlay/issues/158#issuecomment-266913426))
-```
-plex    | s6-supervise (child): fatal: unable to exec run: Permission denied
-plex    | s6-supervise avahi: warning: unable to spawn ./run - waiting 10 seconds
-```
-As a workaround you can add `- /run` to volumes in your docker-compose.yml or `-v /run` to the docker create command.
-
-## Intel Quick Sync Hardware Transcoding Support
-If your Docker host has access to a supported CPU with the Intel Quick Sync feature set and you are a current Plex Pass subscriber, you can enable hardware transcoding within your Plex Docker container.
-
-A list of current and previous Intel CPU's supporting Quick Sync is available on the Intel [website](https://ark.intel.com/content/www/us/en/ark/search/featurefilter.html?productType=873&0_QuickSyncVideo=True).
-
-Hardware transcoding is a Plex Pass feature that can be added to your Docker container by bind mounting the relevant kernel device to the container. To confirm your host kernel supports the Intel Quick Sync feature, the following command can be executed on the host:
-
-`lspci -v -s $(lspci | grep VGA | cut -d" " -f 1)`
-
-which should output `Kernel driver in use: i915` if Quick Sync is available. To pass the kernel device through to the container, add the device parameter like so:
-
-```
+```bash
 docker run \
 -d \
 --name plex \
 --network=host \
--e TZ="<timezone>" \
--e PLEX_CLAIM="<claimToken>" \
--v <path/to/plex/database>:/config \
--v <path/to/transcode/temp>:/transcode \
--v <path/to/media>:/data \
 --device=/dev/dri:/dev/dri \
+-e TZ="America/New_York" \
+-e PLEX_CLAIM="<claim-token>" \
+-v /ruta/config:/config \
+-v /ruta/transcode:/transcode \
+-v /ruta/media:/data \
 plexinc/pms-docker
 ```
 
-In the example above, the `--device=/dev/dri:/dev/dri` was added to the `docker run` command to pass through the kernel device. Once the Plex Media Server container is running, the following steps will turn on the Hardware Transcoding option:
+Luego en Plex Web:
 
-1. Open the Plex Web app.
-2. Navigate to Settings > Server > Transcoder to access the server settings.
-3. Turn on Show Advanced in the upper-right corner to expose advanced settings.
-4. Turn on Use hardware acceleration when available.
-5. Click Save Changes at the bottom.
+1. Settings → Server → Transcoder
+2. Activar "Show Advanced"
+3. Activar "Use hardware acceleration when available"
 
-**NOTE:** Intel Quick Sync support also requires newer _64-bit versions of the Ubuntu or Fedora Linux operating system_ to make use of this feature. If your Docker host also has a dedicated graphics card, the video encoding acceleration of Intel Quick Sync Video may become unavailable when the GPU is in use. _If your computer has an NVIDIA GPU_, please install the latest Latest NVIDIA drivers for Linux to make sure that Plex can use your NVIDIA graphics card for video encoding (only) when Intel Quick Sync Video becomes unavailable._
+### Permisos de Usuario
 
-Your mileage may vary when enabling hardware transcoding as newer generations of Intel CPU's provide transcoding of higher resolution video and newer codecs. There is a useful Wikipedia page [here](https://en.wikipedia.org/wiki/Intel_Quick_Sync_Video#Hardware_decoding_and_encoding) which provides a handy matrix for each CPU generation's support of on-chip video decoding.
+Para que Plex use tus permisos de usuario:
 
-## Windows (Not Recommended)
+```bash
+# Obtener tu UID/GID
+id $(whoami)
+# Salida: uid=1001(usuario) gid=1001(usuario)
 
-Docker on Windows works differently than it does on Linux; it uses a VM to run a stripped-down Linux and then runs docker within that.  The volume mounts are exposed to the docker in this VM via SMB mounts.  While this is fine for media, it is unacceptable for the `/config` directory because SMB does not support file locking.  This **will** eventually corrupt your database which can lead to slow behavior and crashes.  If you must run in docker on Windows, you should put the `/config` directory mount inside the VM and not on the Windows host.  It's worth noting that this warning also extends to other containers which use SQLite databases.
+# Usar en docker run
+-e PLEX_UID=1001 \
+-e PLEX_GID=1001
+```
 
-## Running on a headless server with container using host networking
+---
 
-If the claim token is not added during initial configuration you will need to use ssh tunneling to gain access and setup the server for first run. During first run you setup the server to make it available and configurable. However, this setup option will only be triggered if you access it over http://localhost:32400/web, it will not be triggered if you access it over http://ip_of_server:32400/web. If you are setting up PMS on a headless server, you can use a SSH tunnel to link http://localhost:32400/web (on your current computer) to http://localhost:32400/web (on the headless server running PMS):
+## 🐛 Troubleshooting
 
-`ssh username@ip_of_server -L 32400:ip_of_server:32400 -N`
+### Railway: Servidor no accesible externamente
+
+- ✅ Verifica `ADVERTISE_IP=https://tu-app.railway.app:32400`
+- ✅ Asegúrate de incluir el puerto `:32400`
+- ✅ Revisa logs en Railway Dashboard
+
+### Google Drive: "Cannot read files"
+
+- ✅ Verifica que compartiste la carpeta con el email de Service Account
+- ✅ Asegúrate de dar permisos de **"Editor"**, no "Lector"
+- ✅ Revisa logs: `[Rclone] ✓ Read access verified`
+
+### Google Drive: "Invalid JSON"
+
+- ✅ Abre el JSON con Bloc de notas (no Word)
+- ✅ Copia TODO el contenido sin modificar
+- ✅ Verifica que empieza con `{` y termina con `}`
+
+### Docker: Servidor se reinicia constantemente
+
+- ✅ Verifica que `PLEX_CLAIM` no haya expirado (4 minutos)
+- ✅ Revisa logs: `docker logs plex`
+- ✅ Verifica permisos de volúmenes
+
+### Docker: No puedo agregar bibliotecas
+
+- ✅ Verifica que el volumen `/data` esté montado
+- ✅ Asegúrate de tener archivos en `/data`
+- ✅ Revisa permisos con `PLEX_UID` y `PLEX_GID`
+
+### Headless Server (Sin GUI)
+
+Si no agregaste `PLEX_CLAIM` al inicio, usa SSH tunneling:
+
+```bash
+ssh usuario@ip-servidor -L 32400:localhost:32400 -N
+```
+
+Luego accede a `http://localhost:32400/web` en tu PC.
+
+---
+
+## 📊 Comparación: Service Account vs OAuth
+
+| Característica | Service Account | OAuth Personal |
+|----------------|-----------------|----------------|
+| **Instalación en PC** | ❌ No requiere | ✅ Requiere Rclone |
+| **Complejidad** | ⭐ Muy fácil | ⭐⭐⭐ Media |
+| **Tiempo setup** | ~5 minutos | ~15 minutos |
+| **Expiración** | ♾️ Nunca | ⚠️ Puede expirar |
+| **Seguridad** | ✅ Acceso limitado | ⚠️ Acceso total |
+| **Recomendado para** | Todos | Usuarios avanzados |
+
+---
+
+## 📚 Recursos Adicionales
+
+- [Documentación Oficial de Plex](https://support.plex.tv/)
+- [Repositorio GitHub](https://github.com/plexinc/pms-docker)
+- [Documentación de Railway](https://docs.railway.app/)
+- [Foro de la Comunidad Plex](https://forums.plex.tv/)
+- [Guía Service Account Detallada](SERVICE_ACCOUNT_SETUP.md)
+- [Guía OAuth Avanzada](GOOGLE_DRIVE_SETUP.md)
+
+---
+
+## 📄 Licencia
+
+Este proyecto usa el contenedor oficial de Plex Media Server. Consulta la [licencia de Plex](https://www.plex.tv/about/privacy-legal/plex-terms-of-service/).
+
+---
+
+## 🤝 Contribuciones
+
+Si encuentras problemas o tienes sugerencias, abre un issue en [plexinc/pms-docker](https://github.com/plexinc/pms-docker/issues).
